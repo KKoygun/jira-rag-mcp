@@ -5,12 +5,16 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import dotenv from "dotenv"
 import { loadConfig } from "./config.js"
 import { JiraClient } from "./jira/client.js"
+import { LocalEmbedder } from "./rag/embedder.js"
+import { defaultJql, IndexStore } from "./rag/store.js"
 import { createServer } from "./server.js"
 
 async function main(): Promise<void> {
   dotenv.config({ quiet: true })
   const config = loadConfig()
-  const server = createServer({ jira: new JiraClient(config.jira), project: config.project })
+  const jira = new JiraClient(config.jira)
+  const store = new IndexStore(jira, process.env.RAG_JQL || defaultJql(config.project), new LocalEmbedder())
+  const server = createServer({ jira, project: config.project, store })
   await server.connect(new StdioServerTransport())
   console.error(`jira-rag-mcp ready · ${config.jira.baseUrl} · project ${config.project}`)
 }

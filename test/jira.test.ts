@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { adfToText, toAdf } from "../src/jira/adf.js"
 import { JiraClient, JiraError } from "../src/jira/client.js"
-import { plan } from "../scripts/seed-jira.js"
+import { plan } from "../seed/plan.js"
 import { STORIES } from "../seed/todomvc.js"
 
 interface Call {

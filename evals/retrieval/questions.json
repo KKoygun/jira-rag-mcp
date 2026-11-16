@@ -1,0 +1,27 @@
+{
+  "about": "Retrieval questions over the TodoMVC seed corpus. expected holds seed ids (seed-<id> labels); kind is the filter a tool call would use. Wording is deliberately not copied from the issues for most questions.",
+  "questions": [
+    { "q": "do we have a test that todos are still there after the browser is refreshed", "kind": "test-case", "expected": ["tc16"] },
+    { "q": "bug where blank todos got created", "kind": "past-defect", "expected": ["d01"] },
+    { "q": "test for an input that has only whitespace", "kind": "test-case", "expected": ["tc03"] },
+    { "q": "trimming spaces around the text of a new item", "kind": "test-case", "expected": ["tc04"] },
+    { "q": "chosen filter lost after page reload", "kind": "past-defect", "expected": ["d05"] },
+    { "q": "check that the active view only shows unfinished items", "kind": "test-case", "expected": ["tc11"] },
+    { "q": "singular wording of the remaining count", "kind": "test-case", "expected": ["tc17"] },
+    { "q": "pluralisation bug in the items left label", "kind": "past-defect", "expected": ["d08"] },
+    { "q": "list wiped because of unicode emoji when saving", "kind": "past-defect", "expected": ["d07"] },
+    { "q": "clear completed should not be visible when nothing is done", "kind": "test-case", "expected": ["tc15"] },
+    { "q": "earlier problem with the clear completed button showing up", "kind": "past-defect", "expected": ["d06"] },
+    { "q": "complete every todo with one control", "kind": "test-case", "expected": ["tc09", "tc10"] },
+    { "q": "toggle all checkbox in the wrong state after removing an item", "kind": "past-defect", "expected": ["d04"] },
+    { "q": "cannot rename an item once it is checked off", "kind": "past-defect", "expected": ["d03"] },
+    { "q": "double click to rename a task", "kind": "test-case", "expected": ["tc05", "tc06"] },
+    { "q": "items stay in the order they were typed", "kind": "test-case", "expected": ["tc02"] },
+    { "q": "reopening a finished todo", "kind": "test-case", "expected": ["tc08"] },
+    { "q": "pressing Escape while editing", "kind": "past-defect", "expected": ["d02"] },
+    { "q": "URL hash routing such as #/active", "kind": "test-case", "expected": ["tc11"] },
+    { "q": "finished items shown with a line through them", "kind": "test-case", "expected": ["tc07"] },
+    { "q": "feature for finding todos by typing part of the text", "kind": "story", "expected": ["s09"] },
+    { "q": "requirement to remember the list between visits", "kind": "story", "expected": ["s07"] }
+  ]
+}
