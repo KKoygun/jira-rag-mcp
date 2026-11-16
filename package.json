@@ -1,0 +1,26 @@
+{
+  "name": "jira-rag-mcp",
+  "version": "0.1.0",
+  "description": "MCP server that gives AI assistants QA context: Jira stories through MCP tools and RAG search over test cases and past defects",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "seed:jira": "tsx scripts/seed-jira.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "dotenv": "^18.0.10",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}
