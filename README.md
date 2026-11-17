@@ -39,6 +39,19 @@ Root cause: Escape left edit mode, which fired blur, and the blur handler saved 
 
 Neither of the closest test cases presses Escape, and the closest past defect is an Escape bug. The assistant reads that as: **untested, and it broke before**, the riskiest kind of gap. The `gap_analysis` prompt asks it to do this for every criterion and draft the missing tests.
 
+### In practice
+
+Asked in Claude Code to *"do a test gap analysis for KAN-10"*, the assistant called the server five times and answered:
+
+| AC | Criterion | Covered by | Verdict |
+|---|---|---|---|
+| AC1 | Double-click turns the text into an edit field | KAN-11, on an active item | **Partly covered**: a finished item is never tried, and KAN-14 broke exactly there |
+| AC2 | Enter *or leaving the field* saves the *trimmed* text | KAN-12, Enter only | **Partly covered**: leaving the field and trimming are never tested |
+| AC3 | Escape cancels and keeps the original text | none | **Not covered**, and KAN-13 broke it before |
+| AC4 | Saving empty text deletes the todo | none | **Not covered** |
+
+It also noted that KAN-7 and KAN-8, the blank-input and trimming tests, *"look like matches on wording, but they test the new todo field, not the edit field"*: the case the retrieval alone cannot tell apart, settled by reading the expected results. It then drafted seven test cases, ranked the gaps by risk, and said it created nothing in Jira, since the tools are read-only.
+
 ## What the server offers
 
 | | Name | What it does |
@@ -57,7 +70,7 @@ Everything is read-only: nothing in the server can change a Jira issue.
 
 ```mermaid
 flowchart LR
-  client["MCP client<br/>IntelliJ · Claude · Cursor"] <-->|stdio| server
+  client["MCP client<br/>Claude Code · Claude Desktop · Cursor"] <-->|stdio| server
 
   subgraph server["jira-rag-mcp"]
     tools["Tools · prompt · resource"]
@@ -130,13 +143,15 @@ npm run build
 
 The server speaks MCP over stdio. Point your client at the built entry point, with an absolute path; it reads `.env` from the project folder itself.
 
-**Claude Code**
+**Claude Code** (the client it was tested with)
 
 ```bash
 claude mcp add jira-rag -- node /absolute/path/to/jira-rag-mcp/dist/src/index.js
 ```
 
-**IntelliJ AI Assistant, Claude Desktop, Cursor** and other clients that take a JSON server list:
+Then, in a session in that folder: `/mcp__jira-rag__gap_analysis KAN-10`, or just ask for a gap analysis.
+
+**Claude Desktop, Cursor** and other clients that take a JSON server list (same command, not tested here):
 
 ```json
 {
