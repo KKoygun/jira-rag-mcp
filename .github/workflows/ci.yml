@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Jira, MCP client and embedder are all fakes here; no network, no credentials
+      - name: Unit and MCP contract tests
+        run: npm test
+
+      # The embedding model (about 23 MB) is downloaded once and then restored from cache
+      - name: Cache embedding model
+        uses: actions/cache@v4
+        with:
+          path: .index/models
+          key: embedding-model-all-MiniLM-L6-v2-q8
+
+      # Real model, seed corpus, no Jira: fails if hybrid recall@5 drops below 85%
+      - name: Retrieval eval
+        run: npm run eval:retrieval -- --min-recall=0.85
