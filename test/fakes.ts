@@ -51,7 +51,7 @@ export function fakeJira(issues: JiraIssue[]) {
       queries.push(jql)
       const keys = jql.match(/key in \(([^)]*)\)/)?.[1]?.split(",")
       if (keys) return issues.filter((i) => keys.includes(i.key)).slice(0, max)
-      if (jql.includes("issuetype = Story AND")) return issues.filter((i) => i.type === "Story").slice(0, max)
+      if (jql.includes("issuetype = Story")) return issues.filter((i) => i.type === "Story").slice(0, max)
       return issues.slice(0, max)
     },
   }

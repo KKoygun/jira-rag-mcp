@@ -1,4 +1,4 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
+import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { z } from "zod"
 import { JiraClient, JiraIssue } from "../jira/client.js"
 
@@ -40,7 +40,18 @@ export function formatStory(story: JiraIssue, linked: JiraIssue[]): string {
   ].join("\n")
 }
 
-// Read-only Jira tools. Nothing here can change an issue.
+// Shared by get_story and the jira://{key} resource, so both return the same text
+export async function storyMarkdown(jira: Pick<JiraClient, "getIssue" | "search">, key: string): Promise<{ markdown: string } | { error: string }> {
+  const k = key.trim().toUpperCase()
+  if (!KEY.test(k)) return { error: `"${key}" is not an issue key. Expected something like KAN-10.` }
+  const story = await jira.getIssue(k)
+  if (!story) return { error: `${k} was not found, or this account cannot see it.` }
+  const linkedKeys = story.links.map((l) => l.key)
+  const linked = linkedKeys.length ? await jira.search(`key in (${linkedKeys.join(",")})`, linkedKeys.length) : []
+  return { markdown: formatStory(story, linked) }
+}
+
+// Read-only Jira tools and the story resource. Nothing here can change an issue.
 export function registerJiraTools(server: McpServer, jira: Pick<JiraClient, "getIssue" | "search">, project: string): void {
   server.registerTool(
     "get_story",
@@ -52,13 +63,30 @@ export function registerJiraTools(server: McpServer, jira: Pick<JiraClient, "get
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
     async ({ key }) => {
-      const k = key.trim().toUpperCase()
-      if (!KEY.test(k)) return failure(`"${key}" is not an issue key. Expected something like KAN-10.`)
-      const story = await jira.getIssue(k)
-      if (!story) return failure(`${k} was not found, or this account cannot see it.`)
-      const linkedKeys = story.links.map((l) => l.key)
-      const linked = linkedKeys.length ? await jira.search(`key in (${linkedKeys.join(",")})`, linkedKeys.length) : []
-      return text(formatStory(story, linked))
+      const result = await storyMarkdown(jira, key)
+      return "error" in result ? failure(result.error) : text(result.markdown)
+    }
+  )
+
+  // The same story as a resource, jira://KAN-10, for clients that let the user attach context
+  // directly instead of waiting for the assistant to call a tool. Listing shows the project's stories.
+  server.registerResource(
+    "story",
+    new ResourceTemplate("jira://{key}", {
+      list: async () => {
+        const stories = await jira.search(`project = ${jqlString(project)} AND issuetype = Story ORDER BY key`, 100)
+        return { resources: stories.map((s) => ({ uri: `jira://${s.key}`, name: `${s.key} ${s.summary}`, mimeType: "text/markdown" })) }
+      },
+    }),
+    {
+      title: "Jira story",
+      description: "A story with its acceptance criteria and linked test cases and past defects, as Markdown",
+      mimeType: "text/markdown",
+    },
+    async (uri, { key }) => {
+      const result = await storyMarkdown(jira, String(key))
+      if ("error" in result) throw new Error(result.error)
+      return { contents: [{ uri: uri.href, mimeType: "text/markdown", text: result.markdown }] }
     }
   )
 

@@ -97,6 +97,30 @@ describe("get_story", () => {
   })
 })
 
+describe("jira://{key} resource", () => {
+  it("lists the project's stories as resources", async () => {
+    const { client } = await connect()
+    const { resources } = await client.listResources()
+    expect(resources).toHaveLength(1)
+    expect(resources[0]).toMatchObject({ uri: "jira://KAN-10", name: "KAN-10 Edit a todo inline", mimeType: "text/markdown" })
+    const { resourceTemplates } = await client.listResourceTemplates()
+    expect(resourceTemplates.map((t) => t.uriTemplate)).toEqual(["jira://{key}"])
+  })
+
+  it("reads a story as the same Markdown get_story returns", async () => {
+    const { client } = await connect()
+    const resource = await client.readResource({ uri: "jira://KAN-10" })
+    const tool = textOf(await client.callTool({ name: "get_story", arguments: { key: "KAN-10" } }))
+    expect(resource.contents[0]).toMatchObject({ uri: "jira://KAN-10", mimeType: "text/markdown" })
+    expect((resource.contents[0] as { text: string }).text).toBe(tool)
+  })
+
+  it("fails to read a story that does not exist", async () => {
+    const { client } = await connect()
+    await expect(client.readResource({ uri: "jira://KAN-999" })).rejects.toThrow(/KAN-999 was not found/)
+  })
+})
+
 describe("search_stories", () => {
   it("builds the JQL from the words and status, scoped to the project's stories", async () => {
     const { client, jira } = await connect()
