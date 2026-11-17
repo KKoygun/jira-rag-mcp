@@ -1,12 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { z } from "zod"
-import { JiraClient } from "./jira/client.js"
+import { JiraReader } from "./jira/client.js"
 import { IndexStore } from "./rag/store.js"
 import { registerJiraTools } from "./tools/jiraTools.js"
 import { registerRagTools } from "./tools/ragTools.js"
 
 export interface ServerDeps {
-  jira: Pick<JiraClient, "getIssue" | "search">
+  jira: JiraReader
   project: string
   store: IndexStore
 }

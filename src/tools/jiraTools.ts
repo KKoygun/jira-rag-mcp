@@ -1,6 +1,6 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { z } from "zod"
-import { JiraClient, JiraIssue } from "../jira/client.js"
+import { JiraIssue, JiraReader } from "../jira/client.js"
 
 export type IssueKind = "story" | "test-case" | "past-defect" | "other"
 
@@ -40,19 +40,32 @@ export function formatStory(story: JiraIssue, linked: JiraIssue[]): string {
   ].join("\n")
 }
 
+// A wrong token makes Jira answer "not found" too, so a miss is only reported as one after the
+// credentials check passes; otherwise the message names the real problem
+export async function findIssue(jira: JiraReader, key: string): Promise<JiraIssue | { error: string }> {
+  const issue = await jira.getIssue(key)
+  if (issue) return issue
+  try {
+    await jira.checkAccess()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) }
+  }
+  return { error: `${key} was not found, or this account cannot see it.` }
+}
+
 // Shared by get_story and the jira://{key} resource, so both return the same text
-export async function storyMarkdown(jira: Pick<JiraClient, "getIssue" | "search">, key: string): Promise<{ markdown: string } | { error: string }> {
+export async function storyMarkdown(jira: JiraReader, key: string): Promise<{ markdown: string } | { error: string }> {
   const k = key.trim().toUpperCase()
   if (!KEY.test(k)) return { error: `"${key}" is not an issue key. Expected something like KAN-10.` }
-  const story = await jira.getIssue(k)
-  if (!story) return { error: `${k} was not found, or this account cannot see it.` }
+  const story = await findIssue(jira, k)
+  if ("error" in story) return story
   const linkedKeys = story.links.map((l) => l.key)
   const linked = linkedKeys.length ? await jira.search(`key in (${linkedKeys.join(",")})`, linkedKeys.length) : []
   return { markdown: formatStory(story, linked) }
 }
 
 // Read-only Jira tools and the story resource. Nothing here can change an issue.
-export function registerJiraTools(server: McpServer, jira: Pick<JiraClient, "getIssue" | "search">, project: string): void {
+export function registerJiraTools(server: McpServer, jira: JiraReader, project: string): void {
   server.registerTool(
     "get_story",
     {

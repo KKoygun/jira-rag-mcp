@@ -27,6 +27,9 @@ export interface JiraIssue {
   url: string
 }
 
+// What the server reads from Jira; tests pass a fake with the same shape
+export type JiraReader = Pick<JiraClient, "getIssue" | "search" | "checkAccess">
+
 export class JiraError extends Error {
   constructor(readonly status: number, message: string) {
     super(message)
@@ -59,6 +62,25 @@ export class JiraClient {
   constructor(config: JiraConfig, private readonly fetchFn: Fetch = fetch) {
     this.base = config.baseUrl.replace(/\/$/, "")
     this.auth = "Basic " + Buffer.from(`${config.email}:${config.apiToken}`).toString("base64")
+  }
+
+  // With a wrong token Jira Cloud does not refuse most calls: an issue comes back 404 and a
+  // search comes back empty, as for an anonymous user. /myself is the call that says 401, so
+  // it tells "not found" and "no results" apart from "bad credentials". Checked once per client.
+  private access: Promise<void> | undefined
+
+  checkAccess(): Promise<void> {
+    this.access ??= this.request("GET", "/myself").then(
+      () => undefined,
+      (e) => {
+        this.access = undefined
+        if (e instanceof JiraError && (e.status === 401 || e.status === 403)) {
+          throw new JiraError(e.status, `Jira rejected the credentials (${e.status}). Check JIRA_EMAIL and JIRA_API_TOKEN.`)
+        }
+        throw e
+      }
+    )
+    return this.access
   }
 
   async getIssue(key: string): Promise<JiraIssue | null> {

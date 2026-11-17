@@ -6,7 +6,8 @@ import { Bm25, tokenize } from "../src/rag/bm25.js"
 import { docsFromIssues, seedDocs, seedIssues } from "../src/rag/documents.js"
 import { KnowledgeIndex } from "../src/rag/knowledgeIndex.js"
 import { acceptanceCriteria } from "../src/tools/ragTools.js"
-import { FakeEmbedder } from "./fakes.js"
+import { IndexStore } from "../src/rag/store.js"
+import { FakeEmbedder, fakeJira } from "./fakes.js"
 
 describe("documents", () => {
   it("turns the seed into 35 documents of the right kinds, linked to their stories", () => {
@@ -66,6 +67,18 @@ describe("KnowledgeIndex", () => {
     docs[0]!.text += "\n- one more criterion"
     await KnowledgeIndex.build(docs, embedder, first)
     expect(embedder.embedded).toBe(35 + 1)
+  })
+})
+
+describe("IndexStore", () => {
+  it("rebuilds from Jira when the saved index is empty", async () => {
+    const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "rag-")), "index.json")
+    const embedder = new FakeEmbedder()
+    ;(await KnowledgeIndex.build([], embedder)).save(file)
+
+    const index = await new IndexStore(fakeJira(seedIssues()), "corpus", embedder, file).get()
+    expect(index.size).toBe(35)
+    expect(KnowledgeIndex.load(file, embedder)?.size).toBe(35)
   })
 })
 

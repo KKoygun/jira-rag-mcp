@@ -1,4 +1,4 @@
-import { JiraIssue } from "../src/jira/client.js"
+import { JiraError, JiraIssue } from "../src/jira/client.js"
 import { tokenize } from "../src/rag/bm25.js"
 import { Embedder } from "../src/rag/embedder.js"
 
@@ -39,20 +39,28 @@ export const issue = (key: string, over: Partial<JiraIssue> = {}): JiraIssue => 
   ...over,
 })
 
-// A Jira that answers from memory and records the JQL it was asked
+// A Jira that answers from memory and records the JQL it was asked. Set authorized to false to
+// get what real Jira Cloud does with a wrong token: issues "not found", searches empty, and a
+// 401 only from the credentials check.
 export function fakeJira(issues: JiraIssue[]) {
   const queries: string[] = []
-  return {
+  const fake = {
     queries,
+    authorized: true,
     async getIssue(key: string) {
-      return issues.find((i) => i.key === key) ?? null
+      return (fake.authorized && issues.find((i) => i.key === key)) || null
     },
     async search(jql: string, max = 500) {
       queries.push(jql)
+      if (!fake.authorized) return []
       const keys = jql.match(/key in \(([^)]*)\)/)?.[1]?.split(",")
       if (keys) return issues.filter((i) => keys.includes(i.key)).slice(0, max)
       if (jql.includes("issuetype = Story")) return issues.filter((i) => i.type === "Story").slice(0, max)
       return issues.slice(0, max)
     },
+    async checkAccess() {
+      if (!fake.authorized) throw new JiraError(401, "Jira rejected the credentials (401). Check JIRA_EMAIL and JIRA_API_TOKEN.")
+    },
   }
+  return fake
 }

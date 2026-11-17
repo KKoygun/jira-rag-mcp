@@ -86,6 +86,18 @@ describe("JiraClient", () => {
     await expect(new JiraClient(config, fakeFetch({ status: 401, body: {} }).fn).getIssue("KAN-1")).rejects.toThrow(JiraError)
   })
 
+  it("checkAccess turns a 401 from /myself into a credentials message, and checks only once on success", async () => {
+    const bad = new JiraClient(config, fakeFetch({ status: 401, body: {} }).fn)
+    await expect(bad.checkAccess()).rejects.toThrow("Jira rejected the credentials (401). Check JIRA_EMAIL and JIRA_API_TOKEN.")
+
+    const { fn, calls } = fakeFetch({ body: { displayName: "QA" } })
+    const good = new JiraClient(config, fn)
+    await good.checkAccess()
+    await good.checkAccess()
+    expect(calls).toHaveLength(1)
+    expect(calls[0]!.url).toMatch(/\/rest\/api\/3\/myself$/)
+  })
+
   it("follows nextPageToken until every page is read", async () => {
     const { fn, calls } = fakeFetch(
       { body: { issues: [rawIssue("KAN-4"), rawIssue("KAN-5")], nextPageToken: "p2" } },

@@ -1,10 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { z } from "zod"
-import { JiraClient } from "../jira/client.js"
+import { JiraReader } from "../jira/client.js"
 import { Doc } from "../rag/documents.js"
 import { Hit } from "../rag/knowledgeIndex.js"
 import { IndexStore } from "../rag/store.js"
-import { IssueKind } from "./jiraTools.js"
+import { findIssue, IssueKind } from "./jiraTools.js"
 
 const text = (value: string) => ({ content: [{ type: "text" as const, text: value }] })
 const failure = (value: string) => ({ ...text(value), isError: true })
@@ -40,7 +40,7 @@ export function acceptanceCriteria(description: string): string[] {
   return description.trim() ? [description.trim()] : []
 }
 
-export function registerRagTools(server: McpServer, jira: Pick<JiraClient, "getIssue">, store: IndexStore): void {
+export function registerRagTools(server: McpServer, jira: JiraReader, store: IndexStore): void {
   server.registerTool(
     "search_test_assets",
     {
@@ -76,8 +76,8 @@ export function registerRagTools(server: McpServer, jira: Pick<JiraClient, "getI
     },
     async ({ key, tests_per_criterion }) => {
       const k = key.trim().toUpperCase()
-      const story = await jira.getIssue(k)
-      if (!story) return failure(`${k} was not found, or this account cannot see it.`)
+      const story = await findIssue(jira, k)
+      if ("error" in story) return failure(story.error)
       const criteria = acceptanceCriteria(story.description)
       if (!criteria.length) return failure(`${k} has no description to check against.`)
       const index = await store.get()

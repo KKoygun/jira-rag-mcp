@@ -198,6 +198,43 @@ describe("refresh_index", () => {
   })
 })
 
+describe("wrong credentials (Jira answers them with \"not found\" and empty searches)", () => {
+  it("get_story and check_coverage name the credentials, not a missing issue", async () => {
+    const { client, jira } = await connect()
+    jira.authorized = false
+    for (const name of ["get_story", "check_coverage"]) {
+      const result = await client.callTool({ name, arguments: { key: "KAN-10" } })
+      expect(result.isError).toBe(true)
+      expect(textOf(result)).toMatch(/Jira rejected the credentials \(401\)/)
+    }
+  })
+
+  it("refresh_index fails loudly and searches keep using the index built before", async () => {
+    const { client, jira } = await connect(seedIssues())
+    await client.callTool({ name: "search_test_assets", arguments: { query: "counter" } })
+    jira.authorized = false
+
+    const refresh = await client.callTool({ name: "refresh_index", arguments: {} })
+    expect(refresh.isError).toBe(true)
+    expect(textOf(refresh)).toMatch(/rejected the credentials/)
+
+    const search = await client.callTool({ name: "search_test_assets", arguments: { query: "items left counter", kind: "test-case", limit: 1 } })
+    expect(search.isError).toBeFalsy()
+    expect(textOf(search)).toMatch(/^1\. TC1[78] /)
+  })
+
+  it("an empty search with working credentials does not replace the index either", async () => {
+    const issues = seedIssues()
+    const { client } = await connect(issues)
+    await client.callTool({ name: "search_test_assets", arguments: { query: "counter" } })
+    issues.splice(0, issues.length)
+
+    const refresh = await client.callTool({ name: "refresh_index", arguments: {} })
+    expect(textOf(refresh)).toMatch(/Jira returned no issues for: corpus\nCheck JIRA_PROJECT and RAG_JQL\. The existing index was kept\./)
+    expect(textOf(await client.callTool({ name: "search_test_assets", arguments: { query: "counter" } }))).toMatch(/^1\. /)
+  })
+})
+
 describe("jqlString", () => {
   it("escapes quotes and backslashes so user text cannot break out of the JQL string", () => {
     expect(jqlString('a" OR project = X')).toBe('"a\\" OR project = X"')
