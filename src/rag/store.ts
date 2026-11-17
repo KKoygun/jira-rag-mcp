@@ -1,7 +1,8 @@
 import path from "node:path"
 import { JiraClient } from "../jira/client.js"
 import { docsFromIssues } from "./documents.js"
-import { Embedder, PROJECT_ROOT } from "./embedder.js"
+import { PROJECT_ROOT } from "../paths.js"
+import { Embedder } from "./embedder.js"
 import { KnowledgeIndex } from "./knowledgeIndex.js"
 
 export const DEFAULT_INDEX_FILE = path.join(PROJECT_ROOT, ".index", "index.json")

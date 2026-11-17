@@ -1,13 +1,11 @@
 import path from "node:path"
-import { fileURLToPath } from "node:url"
+import { PROJECT_ROOT } from "../paths.js"
 
 export interface Embedder {
   // Stored with the index, so vectors from another model are never mixed in
   readonly model: string
   embed(texts: string[]): Promise<number[][]>
 }
-
-export const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 
 // all-MiniLM-L6-v2 running inside Node through ONNX: no API key, no cost, and the same
 // vectors on every machine. The 8-bit build (about 23 MB) scores within a few hundredths

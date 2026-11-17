@@ -2,15 +2,18 @@
 // stdio entry point for MCP clients (Claude Code, Claude Desktop, Cursor).
 // stdout carries the protocol, so nothing else may print there: logs go to stderr.
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
+import path from "node:path"
 import dotenv from "dotenv"
 import { loadConfig } from "./config.js"
+import { PROJECT_ROOT } from "./paths.js"
 import { JiraClient } from "./jira/client.js"
 import { LocalEmbedder } from "./rag/embedder.js"
 import { defaultJql, IndexStore } from "./rag/store.js"
 import { createServer } from "./server.js"
 
 async function main(): Promise<void> {
-  dotenv.config({ quiet: true })
+  // The client decides the working directory, so .env is read from the project folder
+  dotenv.config({ path: path.join(PROJECT_ROOT, ".env"), quiet: true })
   const config = loadConfig()
   const jira = new JiraClient(config.jira)
   const store = new IndexStore(jira, process.env.RAG_JQL || defaultJql(config.project), new LocalEmbedder())

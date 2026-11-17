@@ -20,6 +20,10 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      # What MCP clients run: node dist/src/index.js
+      - name: Build
+        run: npm run build
+
       # Jira, MCP client and embedder are all fakes here; no network, no credentials
       - name: Unit and MCP contract tests
         run: npm test

@@ -4,7 +4,8 @@
 import fs from "node:fs"
 import path from "node:path"
 import { seedDocs } from "../src/rag/documents.js"
-import { LocalEmbedder, PROJECT_ROOT } from "../src/rag/embedder.js"
+import { PROJECT_ROOT } from "../src/paths.js"
+import { LocalEmbedder } from "../src/rag/embedder.js"
 import { evaluate, Question } from "../src/rag/evaluate.js"
 import { KnowledgeIndex, Mode } from "../src/rag/knowledgeIndex.js"
 
